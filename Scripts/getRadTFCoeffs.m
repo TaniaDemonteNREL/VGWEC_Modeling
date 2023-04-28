@@ -1,4 +1,4 @@
-function [bR, aR] = getRadTFCoeffs(theta0,hydroVCoeff,hydroCoeff)
+function [AR, BR, CR, DR] = getRadTFCoeffs(theta0,tfRadAR_ROm, tfRadBR_ROm, tfRadCR_ROm, tfRadDR_ROm, hydroCoeff)
 % This function extracts the coefficients of the Radiation Transfer
 % Function based on previously fitted data between discretized thetas. 
 
@@ -15,5 +15,23 @@ thetaN = find(deg2rad(hydroCoeff.theta) > abs(theta0(1)),1)-1;
 
 % Get transfer function coefficients depending on the discretized angle. 
 
-bR       = hydroVCoeff.bR(thetaN); % Numerator Coefficients
-aR       = hydroVCoeff.aR(thetaN); % Denominator Coefficients
+% AR       = tfRadAR{thetaN}; % A Matrix Coefficients
+% BR       = tfRadBR{thetaN}; % A Matrix Coefficients
+% CR       = tfRadCR{thetaN}; % A Matrix Coefficients
+% DR       = tfRadDR{thetaN}; % A Matrix Coefficients
+
+% AR       = tfRadAR_RO{thetaN}; % A Matrix Coefficients
+% BR       = tfRadBR_RO{thetaN}; % A Matrix Coefficients
+% CR       = tfRadCR_RO{thetaN}; % A Matrix Coefficients
+% DR       = tfRadDR_RO{thetaN}; % A Matrix Coefficients
+
+% Get transfer function coefficients depending on the discretized angle. 
+AR       = zeros(6,6); 
+BR       = zeros(6,1); 
+CR       = zeros(1,6); 
+DR       = 0; 
+
+AR       = tfRadAR_ROm(:,(thetaN-1)*6+1:(thetaN*6)); % A Matrix Coefficients
+BR       = tfRadBR_ROm(:,thetaN); % A Matrix Coefficients
+CR       = tfRadCR_ROm(1,(thetaN-1)*6+1:(thetaN*6)); % A Matrix Coefficients
+DR       = tfRadDR_ROm(thetaN); % A Matrix Coefficients
