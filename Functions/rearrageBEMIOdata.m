@@ -1,11 +1,12 @@
 %% Test Script
-
+clearvars
 % load('flap1_0Half_hydro.mat'); 
 %% Constants
 plotFlag = 0; 
 rho      = 1000; 
 g        = 9.81; 
 
+tfOrder = 6; 
 %% Form vectors at each discretized theta
 
 dTheta = 10; % Discretized Theta Increments in degrees
@@ -19,26 +20,62 @@ B_Pitch  = zeros(500,length(thetaN));
 % radIRF = zeros(length(thetaN),1);
 E_Pitch  = zeros(500,length(thetaN));
 KH_Pitch = zeros(length(thetaN),1);
+tfRadAR = cell(1,length(thetaN)); 
+tfRadBR = cell(1,length(thetaN));
+tfRadCR = cell(1,length(thetaN));
+tfRadDR = cell(1,length(thetaN));
 
 for i=1:length(thetaN)
 
 filename = ["flap2_" + num2str(thetaN(i)) + "_hydro.mat"]; 
 load(filename)
 
-[~, A]      = getAddedMass(hydro,plotFlag,rho);
-[w,B]       = getRadiationDamping(hydro,plotFlag,rho);
-% [tt,radIRF] = getRadiationIRF(hydro,plotFlag,rho);
-[~, E]      = getExcitationMagnitude(hydro,plotFlag,rho,g);
+[~, A]      = getAddedMassFromBEMIO(hydro,plotFlag,rho);
+[w,B]       = getRadiationDampingFromBEMIO(hydro,plotFlag,rho);
+[tB,radIRF] = getRadiationIRFfromBEMIO(hydro,plotFlag,rho);
+[~, E]      = getExcitationMagnitudeFromBEMIO(hydro,plotFlag,rho,g);
+[tE,excIRF] = getExcitationIRFfromBEMIO(hydro,plotFlag,rho,g);
 
 A_Pitch(:,i)    = A.Pitch;  % Added Mass
 A_PitchInf(i)   = hydro.Ainf(5,5) * rho;  % Added Mass at infinite freq
-B_Pitch(:,i) = B.Pitch;  % Radiation Damping Coefficient
-E_Pitch(:,i) = E.Pitch;  % Excitation Force Magnitude
-KH_Pitch(i)  = hydro.Khs(5,5) * rho * g; % Hydrstatic Restoring Coefficient
 
+KH_Pitch(i)     = hydro.Khs(5,5) * rho * g; % Hydrstatic Restoring Coefficient
+
+B_Pitch(:,i)    = B.Pitch;  % Radiation Damping Coefficient
+B_IRF(:,i)      = radIRF.Pitch;  % Radiation Damping Coefficient
+B_IRFt(:,i)     = tB;  % Radiation Damping Coefficient
+B_IRFSS(:,i)    = radIRF.PitchSS;  % Radiation Damping Coefficient
+
+E_Pitch(:,i)    = E.Pitch;  % Excitation Force Magnitude
+E_IRF(:,i)      = excIRF.Pitch;  % Excitation Damping Coefficient
+E_IRFt(:,i)     = tE;  % Excitation Damping Coefficient
+
+%% Getting the transfer function from the frequency response >>invfreqs 
+% This is done by passing the freq. response and the angular 
+% frequency vector through >>invfreqs 
+
+% [bR(:,i), aR(:,i)] = invfreqs(B_Pitch(:,i),w,tfOrder,tfOrder);
+% [bE(:,i), aE(:,i)] = invfreqs(E_Pitch(:,i),w,tfOrder,tfOrder);
+
+% [bIRF_fft(:,i),freq] = Amp_Spectrum(B_IRF(:,i),1/(w(2)/2*pi),'rectangular','ECF');
+
+%% Getting the transfer function from the frequency response >>tfest
+% This is done by passing the freq. response and the angular 
+% frequency vector through >>tfest
+% sysR(i) = tfest(B_Pitch(:,i),tfOrder,tfOrder);
+% sysE(i) = tfest(E_Pitch(:,i),tfOrder,tfOrder);
+
+%% Getting the transfer function from the frequency response >>imp2ss
+tSIRF = B_IRFt(2,i); 
+[tfRadAR{i},tfRadBR{i},tfRadCR{i},tfRadDR{i},~,~] = imp2ss(B_IRF(:,i)*tSIRF,tSIRF);
+% tfRad = ss2tf(AR3,BR3,CR3,DR3);
 end
 
-save('Flap2_Data','A_Pitch','A_PitchInf','B_Pitch','E_Pitch','KH_Pitch','w')
+%% Save data
+
+% new_filename = 'Flap2_DataALL_new'; 
+% save(new_filename,'A_Pitch','A_PitchInf','B_Pitch','E_Pitch','KH_Pitch','w','B_IRF','B_IRFSS','B_IRFt','E_IRF','E_IRFt',...
+%     'tfRadAR','tfRadBR','tfRadCR','tfRadDR')
 
 %%
 % AA_Surge = squeeze(hydro.ss_A(1,1,:,:)); 
